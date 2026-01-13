@@ -22,9 +22,9 @@ Chrome browser extension adding HTTP Message Signature on all outgoing requests 
 
 ### Signature-Agent Header (Optional)
 
-To use this extension with Cloudflare's verified bots program, you need to configure the `Signature-Agent` header:
+To use this extension with Cloudflare's verified bots program, you need to configure the `signature-Agent` header https://developers.cloudflare.com/bots/reference/bot-verification/web-bot-auth/#43-construct-the-required-headers
 
-```SIGNATURE_AGENT_URL=https://yourdomain.com```
+```export SIGNATURE_AGENT_URL=https://yourdomain.com```
 
 ## Usage
 
