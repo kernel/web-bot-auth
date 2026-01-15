@@ -18,6 +18,14 @@ Chrome browser extension adding HTTP Message Signature on all outgoing requests 
 - RFC 9421 compatible `Signature` header
 - CRX extension server
 
+## Configuration
+
+### Signature-Agent Header (Optional)
+
+To use this extension with Cloudflare's verified bots program, you need to configure the `signature-Agent` header https://developers.cloudflare.com/bots/reference/bot-verification/web-bot-auth/#43-construct-the-required-headers
+
+```export SIGNATURE_AGENT_URL=https://yourdomain.com```
+
 ## Usage
 
 Compile the code of the extension:

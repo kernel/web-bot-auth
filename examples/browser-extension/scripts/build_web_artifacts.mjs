@@ -57,6 +57,33 @@ function setManifestVersion(version) {
   fs.writeFileSync(manifestOutputPath, JSON.stringify(manifest, null, 2));
 }
 
+function injectSignatureAgent() {
+  const signatureAgentUrl = process.env.SIGNATURE_AGENT_URL || "";
+  const backgroundPath = path.join(
+    path.dirname("."),
+    "dist",
+    "mv3",
+    "chromium",
+    "background.mjs"
+  );
+
+  let content = fs.readFileSync(backgroundPath, "utf8");
+
+  const replaced = content.replace(
+    /const signatureAgentUrl = ["']{2};/g,
+    `const signatureAgentUrl = ${JSON.stringify(signatureAgentUrl)};`
+  );
+
+  if (replaced !== content) {
+    fs.writeFileSync(backgroundPath, replaced);
+    console.log("Injected SIGNATURE_AGENT_URL:", signatureAgentUrl);
+  } else if (signatureAgentUrl) {
+    console.warn("SIGNATURE_AGENT_URL set but no injection point found");
+  } else {
+    console.log("No SIGNATURE_AGENT_URL to inject");
+  }
+}
+
 async function main() {
   const distPath = path.join(path.dirname("."), "dist", "web-ext-artifacts");
   if (!fs.existsSync(distPath)) {
@@ -90,6 +117,9 @@ async function main() {
   });
 
   setManifestVersion(pkg.version);
+
+  injectSignatureAgent();
+
   await crx.load(path.join(path.dirname("."), "dist", "mv3", "chromium"));
   const extensionBytes = await crx.pack();
   const extensionID = crx.generateAppId();
