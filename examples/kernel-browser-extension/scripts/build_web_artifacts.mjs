@@ -84,7 +84,7 @@ function injectConfig() {
   const signTypesEnv = process.env.SIGN_TYPES || "";
   if (signTypesEnv) {
     const typesReplaced = content.replace(
-      /(?:const|var|let) signTypes\s*=\s*\["main_frame",\s*"xmlhttprequest"\];/g,
+      /(?:const|var|let) signTypes\s*=\s*\["main_frame"\];/g,
       `var signTypes = ${signTypesEnv};`
     );
     if (typesReplaced !== content) {

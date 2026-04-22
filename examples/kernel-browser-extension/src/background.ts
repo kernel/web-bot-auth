@@ -18,7 +18,7 @@ interface WBAConfig {
 // Build-time placeholders -- replaced by build_web_artifacts.mjs via env vars.
 // Keep these declarations on single lines so the regex replacement works.
 const signDomains: string[] = [];
-const signTypes: string[] = ["main_frame", "xmlhttprequest"];
+const signTypes: string[] = ["main_frame"];
 const signatureAgentUrl = '';
 
 let config: WBAConfig = { signDomains, signTypes, signatureAgentUrl };
@@ -56,6 +56,11 @@ function domainMatches(hostname: string, pattern: string): boolean {
   return false;
 }
 
+const EXCLUDED_PATHS = [
+  "/cdn-cgi/challenge-platform/",
+  "/cdn-cgi/challenge/",
+];
+
 function shouldSign(url: string, requestType: string): boolean {
   if (config.signDomains.length === 0) return false;
 
@@ -66,8 +71,9 @@ function shouldSign(url: string, requestType: string): boolean {
   }
 
   try {
-    const hostname = new URL(url).hostname;
-    return config.signDomains.some((pattern) => domainMatches(hostname, pattern));
+    const parsed = new URL(url);
+    if (EXCLUDED_PATHS.some((p) => parsed.pathname.startsWith(p))) return false;
+    return config.signDomains.some((pattern) => domainMatches(parsed.hostname, pattern));
   } catch {
     return false;
   }
