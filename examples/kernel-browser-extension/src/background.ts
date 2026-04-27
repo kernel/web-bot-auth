@@ -9,69 +9,8 @@ import jwk from "../../rfc9421-keys/ed25519.json" assert { type: "json" };
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
-interface WBAConfig {
-  signDomains: string[];
-  signTypes: string[];
-  signatureAgentUrl: string;
-}
-
-// Build-time placeholders -- replaced by build_web_artifacts.mjs via env vars.
-// Keep these declarations on single lines so the regex replacement works.
-const signDomains: string[] = [];
-const signTypes: string[] = ["main_frame"];
+// Build-time placeholder -- replaced by build_web_artifacts.mjs via env var.
 const signatureAgentUrl = '';
-
-let config: WBAConfig = { signDomains, signTypes, signatureAgentUrl };
-
-// Runtime overrides via chrome.storage.local (set via CDP at browser-create time).
-try {
-  chrome.storage.local.get(
-    ["wbaSignDomains", "wbaSignTypes"],
-    (data: Record<string, string[]>) => {
-      if (data.wbaSignDomains) config.signDomains = data.wbaSignDomains;
-      if (data.wbaSignTypes) config.signTypes = data.wbaSignTypes;
-    },
-  );
-} catch { /* storage unavailable during early init */ }
-
-// Re-apply overrides whenever storage changes (e.g. CDP push while running).
-try {
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local") return;
-    if (changes.wbaSignDomains?.newValue)
-      config.signDomains = changes.wbaSignDomains.newValue;
-    if (changes.wbaSignTypes?.newValue)
-      config.signTypes = changes.wbaSignTypes.newValue;
-  });
-} catch { /* listener unavailable */ }
-
-// ── Domain matching ─────────────────────────────────────────────────────────
-
-function domainMatches(hostname: string, pattern: string): boolean {
-  if (pattern === hostname) return true;
-  if (pattern.startsWith("*.")) {
-    const suffix = pattern.slice(1); // ".example.com"
-    return hostname.endsWith(suffix) && hostname.length > suffix.length;
-  }
-  return false;
-}
-
-function shouldSign(url: string, requestType: string): boolean {
-  if (config.signDomains.length === 0) return false;
-
-  if (config.signTypes.length > 0 &&
-      !config.signTypes.includes("all") &&
-      !config.signTypes.includes(requestType)) {
-    return false;
-  }
-
-  try {
-    const hostname = new URL(url).hostname;
-    return config.signDomains.some((pattern) => domainMatches(hostname, pattern));
-  } catch {
-    return false;
-  }
-}
 
 // ── Signing ─────────────────────────────────────────────────────────────────
 
@@ -115,14 +54,14 @@ class Ed25519Signer {
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
   function (details) {
-    if (!shouldSign(details.url, details.type)) {
+    if (details.type !== "main_frame") {
       return { requestHeaders: details.requestHeaders };
     }
 
-    if (config.signatureAgentUrl) {
+    if (signatureAgentUrl) {
       details.requestHeaders?.push({
         name: "Signature-Agent",
-        value: `"${config.signatureAgentUrl}"`,
+        value: `"${signatureAgentUrl}"`,
       });
     }
 
@@ -154,6 +93,4 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 
 chrome.runtime.onStartup.addListener(() => {
   console.log("Kernel Web Bot Auth extension started");
-  console.log("signDomains:", config.signDomains);
-  console.log("signTypes:", config.signTypes);
 });

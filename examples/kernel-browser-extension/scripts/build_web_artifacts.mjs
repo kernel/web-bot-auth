@@ -43,7 +43,7 @@ function setManifestVersion(version) {
   fs.writeFileSync(manifestOutputPath, JSON.stringify(manifest, null, 2));
 }
 
-function injectConfig() {
+function injectSignatureAgent() {
   const backgroundPath = path.join(
     path.dirname("."),
     "dist",
@@ -53,49 +53,19 @@ function injectConfig() {
   );
 
   let content = fs.readFileSync(backgroundPath, "utf8");
-  let modified = false;
 
-  // Inject SIGNATURE_AGENT_URL
   // tsup may compile `const` to `var`, so match both.
   const signatureAgentUrl = process.env.SIGNATURE_AGENT_URL || "";
-  const agentReplaced = content.replace(
+  const replaced = content.replace(
     /(?:const|var|let) signatureAgentUrl\s*=\s*["']{2};/g,
     `var signatureAgentUrl = ${JSON.stringify(signatureAgentUrl)};`
   );
-  if (agentReplaced !== content) {
-    content = agentReplaced;
-    modified = true;
+
+  if (replaced !== content) {
+    fs.writeFileSync(backgroundPath, replaced);
     console.log("Injected SIGNATURE_AGENT_URL:", signatureAgentUrl);
-  }
-
-  // Inject SIGN_DOMAINS (JSON array from env, e.g. '["*.example.com","api.foo.com"]')
-  const signDomainsEnv = process.env.SIGN_DOMAINS || "[]";
-  const domainsReplaced = content.replace(
-    /(?:const|var|let) signDomains\s*=\s*\[\];/g,
-    `var signDomains = ${signDomainsEnv};`
-  );
-  if (domainsReplaced !== content) {
-    content = domainsReplaced;
-    modified = true;
-    console.log("Injected SIGN_DOMAINS:", signDomainsEnv);
-  }
-
-  // Inject SIGN_TYPES (JSON array from env)
-  const signTypesEnv = process.env.SIGN_TYPES || "";
-  if (signTypesEnv) {
-    const typesReplaced = content.replace(
-      /(?:const|var|let) signTypes\s*=\s*\["main_frame"\];/g,
-      `var signTypes = ${signTypesEnv};`
-    );
-    if (typesReplaced !== content) {
-      content = typesReplaced;
-      modified = true;
-      console.log("Injected SIGN_TYPES:", signTypesEnv);
-    }
-  }
-
-  if (modified) {
-    fs.writeFileSync(backgroundPath, content);
+  } else if (signatureAgentUrl) {
+    console.warn("SIGNATURE_AGENT_URL set but no injection point found");
   }
 }
 
@@ -133,7 +103,7 @@ async function main() {
 
   setManifestVersion(pkg.version);
 
-  injectConfig();
+  injectSignatureAgent();
 
   await crx.load(path.join(path.dirname("."), "dist", "mv3", "chromium"));
   const extensionBytes = await crx.pack();

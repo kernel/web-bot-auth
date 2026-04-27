@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Kernel Web Bot Auth",
-  "permissions": ["webRequest", "webRequestBlocking", "storage"],
+  "permissions": ["webRequest", "webRequestBlocking"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.mjs",
