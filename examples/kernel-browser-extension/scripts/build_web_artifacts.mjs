@@ -69,6 +69,37 @@ function injectSignatureAgent() {
   }
 }
 
+function injectUserAgentOverride() {
+  if (process.env.USER_AGENT_OVERRIDE === undefined) {
+    return;
+  }
+
+  const backgroundPath = path.join(
+    path.dirname("."),
+    "dist",
+    "mv3",
+    "chromium",
+    "background.mjs"
+  );
+
+  let content = fs.readFileSync(backgroundPath, "utf8");
+
+  // tsup may compile `const` to `var`, so match both. The source default is a
+  // non-empty string, so match any quoted value.
+  const userAgentOverride = process.env.USER_AGENT_OVERRIDE;
+  const replaced = content.replace(
+    /(?:const|var|let) userAgentOverride\s*=\s*["'][^"']*["'];/g,
+    `var userAgentOverride = ${JSON.stringify(userAgentOverride)};`
+  );
+
+  if (replaced !== content) {
+    fs.writeFileSync(backgroundPath, replaced);
+    console.log("Injected USER_AGENT_OVERRIDE:", userAgentOverride);
+  } else {
+    console.warn("USER_AGENT_OVERRIDE set but no injection point found");
+  }
+}
+
 async function main() {
   const distPath = path.join(path.dirname("."), "dist", "web-ext-artifacts");
   if (!fs.existsSync(distPath)) {
@@ -104,6 +135,8 @@ async function main() {
   setManifestVersion(pkg.version);
 
   injectSignatureAgent();
+
+  injectUserAgentOverride();
 
   await crx.load(path.join(path.dirname("."), "dist", "mv3", "chromium"));
   const extensionBytes = await crx.pack();

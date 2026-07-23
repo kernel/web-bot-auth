@@ -12,6 +12,13 @@ import jwk from "../../rfc9421-keys/ed25519.json" assert { type: "json" };
 // Build-time placeholder -- replaced by build_web_artifacts.mjs via env var.
 const signatureAgentUrl = '';
 
+// User-Agent advertised on signed (main_frame) navigations so the request
+// carries our verified bot identity. This is a temporary measure until the UA
+// is set natively in the browser image; note it only rewrites the HTTP header,
+// not navigator.userAgent. Overridable at build time via USER_AGENT_OVERRIDE
+// (set to an empty string to disable the rewrite).
+const userAgentOverride = 'KernelSearchBot';
+
 // ── Signing ─────────────────────────────────────────────────────────────────
 
 let KEY_ID = "not-set-yet";
@@ -56,6 +63,22 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
   function (details) {
     if (details.type !== "main_frame") {
       return { requestHeaders: details.requestHeaders };
+    }
+
+    // Rewrite the UA before signing so the signed message and the headers
+    // actually sent stay consistent (the signature may cover user-agent).
+    if (userAgentOverride && details.requestHeaders) {
+      const existing = details.requestHeaders.find(
+        (h) => h.name.toLowerCase() === "user-agent",
+      );
+      if (existing) {
+        existing.value = userAgentOverride;
+      } else {
+        details.requestHeaders.push({
+          name: "User-Agent",
+          value: userAgentOverride,
+        });
+      }
     }
 
     if (signatureAgentUrl) {
