@@ -52,26 +52,9 @@ class Ed25519Signer {
 
 // ── Request listener ────────────────────────────────────────────────────────
 
-// Requests whose path contains this segment are never signed. Cloudflare's
-// challenge orchestration lives under /cdn-cgi/; signing those requests breaks
-// challenge flows (e.g. Turnstile) with "Incompatible browser extension".
-const EXCLUDED_PATH_SUBSTRING = "cdn-cgi/";
-
-function isExcludedPath(url: string): boolean {
-  try {
-    return new URL(url).pathname.includes(EXCLUDED_PATH_SUBSTRING);
-  } catch {
-    return false;
-  }
-}
-
 chrome.webRequest.onBeforeSendHeaders.addListener(
   function (details) {
     if (details.type !== "main_frame") {
-      return { requestHeaders: details.requestHeaders };
-    }
-
-    if (isExcludedPath(details.url)) {
       return { requestHeaders: details.requestHeaders };
     }
 
