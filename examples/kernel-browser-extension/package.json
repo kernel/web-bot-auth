@@ -1,0 +1,34 @@
+{
+  "name": "kernel-web-bot-auth-extension",
+  "version": "0.3.0",
+  "description": "Kernel browser extension adding HTTP Message signatures to allowlisted domains",
+  "scripts": {
+    "build:chrome": "tsup src/background.ts --format esm --platform browser --target chrome100 --clean --out-dir dist/mv3/chromium --external node:crypto",
+    "bundle:chrome": "npm run build:chrome && node ./scripts/build_web_artifacts.mjs",
+    "start:config": "http-server ./dist/web-ext-artifacts -p 8000",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rimraf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kernel/web-bot-auth.git",
+    "directory": "examples/kernel-browser-extension"
+  },
+  "keywords": [
+    "chrome-extension",
+    "cryptography",
+    "typescript",
+    "http-message-signatures",
+    "rfc9421",
+    "kernel"
+  ],
+  "author": "Kernel",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/chrome": "0.0.326",
+    "@types/libsodium-wrappers": "0.7.14",
+    "crx": "5.0.1",
+    "http-server": "14.1.1",
+    "libsodium-wrappers": "0.7.15"
+  }
+}
